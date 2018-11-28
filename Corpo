@@ -1,0 +1,372 @@
+from PyQt5 import QtWidgets, uic
+from PyQt5.QtWidgets import QMainWindow,QLabel, QGridLayout, QWidget, QComboBox, QMessageBox,QMenu
+import cmath
+import Banco
+import math
+import matplotlib.pyplot as plt
+import funcoes as ac
+
+Contador_Cor=0
+
+def AtribPress():
+
+    # Troca "," por "." :
+    Pressao = str(dlg.PressGet.text())
+    Pressao = float(Pressao.replace(",", "."))
+
+    if dlg.DropPress.currentText() == "kPa":
+        P = float(Pressao)
+    elif dlg.DropPress.currentText() == "Pa":
+        P= (float(Pressao))/1000
+    elif dlg.DropPress.currentText() == "psi":
+        P = float(Pressao) * 6.89475728
+    elif dlg.DropPress.currentText() == "in Hg":
+        P = float(Pressao) * 3.386375
+    elif dlg.DropPress.currentText() == "atm":
+        P = float(Pressao) * 101.325
+    elif dlg.DropPress.currentText() == "torr":
+        P = float(Pressao) * 0.133322
+    else:
+        print("Problema na Unidade de Pressão não definida")
+    return(P)
+
+def AtribTemp():
+
+    # Troca "," por "." :
+    Temperatura = str(dlg.TempGet.text())
+    Temperatura = float(Temperatura.replace(",", "."))
+
+    if dlg.DropTemp.currentText() == "K":
+        T = float(Temperatura)
+    elif dlg.DropTemp.currentText() == "ºC":
+        T= float(Temperatura)-273.15
+    elif dlg.DropTemp.currentText() == "ºF":
+        T =  (float(Temperatura)-273.15)*(9/5)+32
+    elif dlg.DropTemp.currentText() == "R":
+        T = float(Temperatura) * (9/5)
+    else:
+        print("Problema na Unidade de Temperatura não definida")
+    return(T)
+
+def MensageBox(Message):
+    msg = QMessageBox()
+    msg.setText(Message);
+    msg.exec_();
+
+def Calcular():
+
+    if dlg.PressGet.text()== "" or dlg.TempGet.text()== "" :
+
+        Message = "Digite um Valor para Temperatura e Pressão       "
+        MensageBox(Message)
+        return
+
+    else:
+
+        P=AtribPress()
+        T=AtribTemp()
+
+        Psatu=ac.Goff(T)
+        Psatu=round(Psatu,2)
+        Label_sat = str(Psatu) + ' kPa'
+        dlg.Labelsat.setText(str(Label_sat))
+
+
+        result = []
+        if dlg.ChkLiq.isChecked() == True:
+            result = ac.FuncCompa(P, T, 0)
+
+            if dlg.DropEqua.currentText() == "Van der Waals (Van)":
+                dlg.RespVol.setText(str(float(result[2])))
+
+            if dlg.DropEqua.currentText() == "Soave-Redlich-Kwong (SRK)":
+                dlg.RespVol.setText(str(float(result[3])))
+
+            if dlg.DropEqua.currentText() == "Peng Robinson (PR)":
+                dlg.RespVol.setText(str(float(result[4])))
+
+            if dlg.DropEqua.currentText() == "Tsai-Chen":
+                dlg.RespVol.setText(str(float(result[5])))
+
+            if dlg.DropEqua.currentText() == "Stryjek-Vera":
+                dlg.RespVol.setText(str(float(result[6])))
+
+            if len(result) == 8:
+                N="Para esta temperatura, o banco de dados do DIPPR informa \no volume específico de:" + str(result[7]) + ' m³/Kg'
+                dlg.Coment1.setText(str(N))
+
+
+
+        elif dlg.ChkVap.isChecked() == True:
+            result = ac.FuncCompa(P, T, 2)
+            N=""
+            dlg.Coment1.setText(str(N))
+
+            if dlg.DropEqua.currentText() == "Van der Waals (Van)":
+                dlg.RespVol.setText(str(float(result[2])))
+
+            if dlg.DropEqua.currentText() == "Soave-Redlich-Kwong (SRK)":
+                dlg.RespVol.setText(str(float(result[3])))
+
+            if dlg.DropEqua.currentText() == "Peng Robinson (PR)":
+                dlg.RespVol.setText(str(float(result[4])))
+
+            if dlg.DropEqua.currentText() == "Tsai-Chen":
+                dlg.RespVol.setText(str(float(result[5])))
+
+            if dlg.DropEqua.currentText() == "Stryjek-Vera":
+                dlg.RespVol.setText(str(float(result[6])))
+
+        elif dlg.ChkTitulo.isChecked() == True:
+
+            N = ""
+            dlg.Coment1.setText(str(N))
+
+            if dlg.TituloGet.text() == "":
+                Message = "Digite um valor para o Título       "
+                MensageBox(Message)
+                return
+            else:
+                #Troca "," por "." :
+                Titulo=str(dlg.TituloGet.text())
+                Titulo=float(Titulo.replace(",","."))
+
+                result_liq= ac.FuncCompa(P, T, 0)
+                result_vap = ac.FuncCompa(P, T, 2)
+                result=ac.FuncCompa(P, T, 0)
+
+                #dlg.Coment1.setText(str(float(result[1])))
+                #dlg.Coment2.setText(str(float(result[2])))
+
+
+                #result[0] A pressão de saturação dada por Goff–Gratch
+                #result[1] A pressão de saturação dada pelo DIPPR
+
+
+                if dlg.DropEqua.currentText() == "Van der Waals (Van)":
+                    result[2] = result_liq[2] + Titulo * (result_vap[2] - result_liq[2])
+                    dlg.RespVol.setText(str(float(result[2])))
+
+                if dlg.DropEqua.currentText() == "Soave-Redlich-Kwong (SRK)":
+                    result[3] = result_liq[3] + Titulo * (result_vap[3] - result_liq[3])
+                    dlg.RespVol.setText(str(float(result[3])))
+
+                if dlg.DropEqua.currentText() == "Peng Robinson (PR)":
+                    result[4] = result_liq[4] + Titulo * (result_vap[4] - result_liq[4])
+                    dlg.RespVol.setText(str(float(result[4])))
+
+                if dlg.DropEqua.currentText() == "Tsai-Chen":
+                    result[5] = result_liq[5] + Titulo * (result_vap[5] - result_liq[5])
+                    dlg.RespVol.setText(str(float(result[5])))
+
+                if dlg.DropEqua.currentText() == "Stryjek-Vera":
+                    result[6] = result_liq[6] + Titulo * (result_vap[6] - result_liq[6])
+                    dlg.RespVol.setText(str(float(result[6])))
+
+
+        else:
+
+            Message = "Defina o estado do fluido       "
+            MensageBox(Message)
+            return
+
+
+
+    return(result)
+
+def Marcador_Titulo():
+    dlg.ChkTitulo.setChecked(True)
+    pass
+
+def AtribTempGraf():
+    TempGet1 = str(dlg.TempGet1.text())
+    TempGet2 = str(dlg.TempGet2.text())
+    TempGet1 = float(TempGet1.replace(",", "."))
+    TempGet2 = float(TempGet2.replace(",", "."))
+
+    if dlg.DropTemp_2.currentText() == "K":
+        Rmin = float(TempGet1)
+    elif dlg.DropTemp_2.currentText() == "ºC":
+        Rmin = float(TempGet1) - 273.15
+    elif dlg.DropTemp_2.currentText() == "ºF":
+        Rmin = (float(TempGet1) - 273.15) * (9 / 5) + 32
+    elif dlg.DropTemp_2.currentText() == "R":
+        Rmin = float(TempGet1) * (9 / 5)
+    else:
+        print("Problema na Unidade de Temperatura não definida")
+
+    #Segundo Bloco
+
+    if dlg.DropTemp_3.currentText() == "K":
+        Rmax= float(TempGet2)
+    elif dlg.DropTemp_3.currentText() == "ºC":
+        Rmax = float(TempGet2) - 273.15
+    elif dlg.DropTemp_3.currentText() == "ºF":
+        Rmax = (float(TempGet2) - 273.15) * (9 / 5) + 32
+    elif dlg.DropTemp_3.currentText() == "R":
+        Rmax = float(TempGet2) * (9 / 5)
+    else:
+        print("Problema na Unidade de Temperatura não definida")
+
+
+
+    return (Rmin,Rmax)
+
+def Graficos():
+    global Contador_Cor
+    if dlg.TempGet1.text()== "" or dlg.TempGet2.text()== "":
+
+        Message = "Digite um Valor para Temperatura Inicial e Final       "
+        MensageBox(Message)
+        return
+    else:
+        Rmin,Rmax=AtribTempGraf()
+
+        Rmin=round(Rmin)
+        Rmax=round(Rmax)
+
+
+        # Qual substância?
+        Subs = 'agua'
+        R = 8.314462  # m³*kPa/K*mol
+        Tc = Banco.Tc[Subs]  # K
+        Pc = Banco.Pc[Subs] * (10 ** 3)  # kPa
+        MM = Banco.MM[Subs]  # g/mol
+        W = Banco.W[Subs]  # ω
+        TC1 = Banco.TC1[Subs]
+        TC2 = Banco.TC2[Subs]
+        TC3 = Banco.TC1[Subs]
+
+        Vanl = []
+        Vanv = []
+        SRKl = []
+        SRKv = []
+        PRl = []
+        PRv = []
+        Veral = []
+        Verav = []
+        TChel = []
+        TChev = []
+
+        for T in range(Rmin, Rmax):
+            P = ac.Goff(T)
+            # Van
+            a1, b1, c1, d1 = ac.Van(P, T, R, Tc, Pc)
+            v = ac.Root3(a1, b1, c1, d1)
+            v[0] = v[0] / MM
+            v[2] = v[2] / MM
+            Vanl.append(v[0])
+            Vanv.append(v[2])
+
+            # SRK
+            a1, b1, c1, d1 = ac.SRK(P, T, R, Tc, Pc, W)
+            v = ac.Root3(a1, b1, c1, d1)
+            v[0] = v[0] / MM
+            v[2] = v[2] / MM
+            SRKl.append(v[0])
+            SRKv.append(v[2])
+
+            # Peng-Robinson
+
+            a1, b1, c1, d1 = ac.Peng(P, T, R, Tc, Pc, W)
+            v = ac.Root3(a1, b1, c1, d1)
+            v[0] = v[0] / MM
+            v[2] = v[2] / MM
+            PRl.append(v[0])
+            PRv.append(v[2])
+
+            # Tsai-Chen (Peng-Robinson com volume de translação)
+
+            a1, b1, c1, d1, t = ac.Tsai(P, T, R, Tc, Pc, W)
+            v = ac.Root3(a1, b1, c1, d1)
+            v[0] = v[0] + t
+            v[2] = v[2] + t
+            v[0] = v[0] / MM
+            v[2] = v[2] / MM
+            TChel.append(v[0])
+            TChev.append(v[2])
+
+            #Vera
+
+            a1, b1, c1, d1 = ac.Vera(P, T, R, Tc, Pc, W)
+            v = ac.Root3(a1, b1, c1, d1)
+            v[0] = v[0] / MM
+            v[2] = v[2] / MM
+            Veral.append(v[0])
+            Verav.append(v[2])
+
+
+        # return (    Vanl,    Vanv, SRKl, SRKv , PRl,PRv ,TChel ,TChev)
+        if dlg.DropEqua_2.currentText() == "Van der Waals (Van)":
+            EquaLiq=Vanl
+            EquaVap=Vanv
+        if dlg.DropEqua_2.currentText() == "Soave-Redlich-Kwong (SRK)":
+            EquaLiq=SRKl
+            EquaVap=SRKv
+        if dlg.DropEqua_2.currentText() == "Peng Robinson (PR)":
+            EquaLiq=PRl
+            EquaVap=PRv
+        if dlg.DropEqua_2.currentText() == "Tsai-Chen":
+            EquaLiq=TChel
+            EquaVap=TChev
+        if dlg.DropEqua_2.currentText() == "Stryjek-Vera":
+            EquaLiq=Veral
+            EquaVap=Verav
+
+
+        if dlg.ChkLiq_2.isChecked() == True:
+            '''
+            if Contador_Cor == 0:
+                
+                #TIRE FOTOS DAQUI PARA COMPARAÇÃO::
+                ###
+                V = []
+                Rmine = 273
+                Rmaxe = 400
+
+                T = Rmine
+                for T in range(Rmine, Rmaxe):
+                    V = ac.VolLiqDIPPR_P(Rmine, Rmaxe)
+
+                plt.scatter(V[1], V[0], marker="x", label="DIPPR")
+                '''
+
+            Cor=ac.MudarCor(Contador_Cor)
+            Contador_Cor = Contador_Cor + 1
+            plt.plot(EquaLiq, range(Rmin, Rmax), label=dlg.DropEqua_2.currentText(), color=Cor)
+        elif dlg.ChkVap_2.isChecked() == True:
+            '''
+            #TIRE FOTOS DAQUI PARA COMPARAÇÃO::
+            if Contador_Cor == 0:
+                V = [[273 +5, 273 + 25, 273 + 50, 273 + 75, 273 + 100, 273 + 125, 273 + 150, 273 + 175, 273 + 200],[ 147.03,43.340, 12.026, 4.1291, 1.6720, 0.77012, 0.39248, 0.21659, 0.12721]]
+                plt.scatter(V[1], V[0], marker="x", label="DIPPR")
+            '''
+
+            Cor = ac.MudarCor(Contador_Cor)
+            Contador_Cor = Contador_Cor + 1
+            plt.plot(EquaVap, range(Rmin, Rmax), label=dlg.DropEqua_2.currentText(), color=Cor )
+
+        else:
+            Message = "Defina o estado do fluido       "
+            MensageBox(Message)
+            return
+
+        plt.ylabel('Temperatura (K)')
+        plt.xlabel('Volume específico (kg/m³)')
+        plt.legend()
+        plt.show()
+
+
+
+app = QtWidgets.QApplication([])
+dlg=uic.loadUi("Corpo.ui")
+
+if dlg.TituloGet.textEdited.connect(Marcador_Titulo):
+    pass
+
+dlg.pushButton.clicked.connect(Calcular)
+dlg.pushButton_2.clicked.connect(Graficos)
+
+
+dlg.show()
+app.exec()
